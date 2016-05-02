@@ -36,7 +36,6 @@ __revision__ = "$Rev$"
 
 from textencoder import TextEncoder
 from placement import DataMatrixPlacer
-from renderer import DataMatrixRenderer
 
 
 class DataMatrixEncoder:
@@ -60,19 +59,52 @@ class DataMatrixEncoder:
         placer = DataMatrixPlacer()
         placer.place(codewords, self.matrix)
 
-    def save(self, filename, cellsize=5):
-        """Write the matrix out to an image file"""
-        dmtx = DataMatrixRenderer(self.matrix)
-        dmtx.write_file(cellsize, filename)
-
-    def get_imagedata(self, cellsize=5):
-        """Write the matrix out to an PNG bytestream"""
-        dmtx = DataMatrixRenderer(self.matrix)
-        self.width = dmtx.width
-        self.height = dmtx.height
-        return dmtx.get_imagedata(cellsize)
 
     def get_ascii(self):
-        """Return an ascii representation of the matrix"""
-        dmtx = DataMatrixRenderer(self.matrix)
-        return dmtx.get_ascii()
+        """Write an ascii version of the matrix out to screen"""
+
+        def symbol(value):
+            """return ascii representation of matrix value"""
+            if value == 0:
+                return '  '
+            elif value == 1:
+                return 'XX'
+
+        return '\n'.join([''.join([symbol(cell) for cell in row]) for row in self.matrix]) + '\n'
+
+    def put_cell(self, (posx, posy), colour=1):
+        """Set the contents of the given cell"""
+
+        self.matrix[posy][posx] = colour
+
+    def add_border(self, colour=1, width=1):
+        """Wrap the matrix in a border of given width
+            and colour"""
+        self.width += len(self.matrix) + (width * 2)
+        self.height += len(self.matrix[0]) + (width * 2)
+
+        self.matrix = \
+            [[colour] * self.width] * width + \
+            [[colour] * width + self.matrix[i] + [colour] * width
+                for i in range(0, self.height - (width * 2))] + \
+            [[colour] * self.width] * width
+
+    def add_handles(self):
+        """Set up the edge handles"""
+        # bottom solid border
+        for posx in range(0, self.width):
+            self.put_cell((posx, self.height - 1))
+
+        # left solid border
+        for posy in range(0, self.height):
+            self.put_cell((0, posy))
+
+        # top broken border
+        for i in range(0, self.width - 1, 2):
+            self.put_cell((i, 0))
+
+        # right broken border
+        for i in range(self.height - 1, 0, -2):
+            self.put_cell((self.width - 1, i))
+
+#if __name__ == "__main__":
